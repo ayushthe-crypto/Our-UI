@@ -6,46 +6,14 @@ import { getSessionById, submitAnswer, endSession } from '../features/sessions/s
 import MonacoEditor from '@monaco-editor/react';
 import { toast } from 'react-toastify';
 
+// only python is relevant for data science interviews
 const SUPPORTED_LANGUAGES = [
-  { label: 'JavaScript', value: 'javascript' },
-  { label: 'TypeScript', value: 'typescript' },
-  { label: 'Python', value: 'python' },
-  { label: 'Java', value: 'java' },
-  { label: 'C++', value: 'cpp' },
-  { label: 'C#', value: 'csharp' },
-  { label: 'Go', value: 'go' },
-  { label: 'Swift', value: 'swift' },
-  { label: 'Kotlin', value: 'kotlin' },
-  { label: 'R Language', value: 'r' },
-  { label: 'SQL', value: 'sql' },
-  { label: 'HTML', value: 'html' },
-  { label: 'CSS', value: 'css' },
-  { label: 'Solidity', value: 'solidity' },
-  { label: 'Shell', value: 'shell' },
-  { label: 'YAML', value: 'yaml' },
-  { label: 'Markdown', value: 'markdown' },
-  { label: 'Plain Text', value: 'plaintext' },
+  { label: 'Python', value: 'python' }
 ];
 
+// mapping only the remaining supported role
 const ROLE_LANGUAGE_MAP = {
-  "MERN Stack Developer": "javascript",
-  "MEAN Stack Developer": "typescript",
-  "Full Stack Python": "python",
-  "Full Stack Java": "java",
-  "Frontend Developer": "javascript",
-  "Backend Developer": "javascript",
-  "Data Scientist": "python",
-  "Data Analyst": "python",
-  "Machine Learning Engineer": "python",
-  "DevOps Engineer": "shell",
-  "Cloud Engineer (AWS/Azure/GCP)": "yaml",
-  "Cybersecurity Engineer": "python",
-  "Blockchain Developer": "solidity",
-  "Mobile Developer (iOS/Android)": "swift",
-  "Game Developer": "csharp",
-  "QA Automation Engineer": "python",
-  "UI/UX Designer": "css",
-  "Product Manager": "markdown"
+  "Data Scientist": "python"
 };
 function InterviewRunner() {
   const { sessionId } = useParams();
@@ -55,7 +23,8 @@ function InterviewRunner() {
   const { activeSession, isLoading, message } = useSelector(state => state.sessions);
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedLanguage, setSelectedLanguage] = useState('javascript');
+  // always use python since only Data Scientist role remains
+  const [selectedLanguage, setSelectedLanguage] = useState('python');
 
 
   // If submittedLocal[0] is true, we lock Question 0 immediately.
@@ -63,7 +32,17 @@ function InterviewRunner() {
 
   const [drafts, setDrafts] = useState(() => {
     const saved = localStorage.getItem(`drafts_${sessionId}`);
-    return saved ? JSON.parse(saved) : {};
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Remove any audioBlob from loaded data since Blobs can't be serialized
+      Object.keys(parsed).forEach(key => {
+        if (parsed[key] && typeof parsed[key] === 'object') {
+          delete parsed[key].audioBlob;
+        }
+      });
+      return parsed;
+    }
+    return {};
   });
 
   const [isRecording, setIsRecording] = useState(false);
@@ -85,7 +64,11 @@ function InterviewRunner() {
 
 
   useEffect(() => {
-    localStorage.setItem(`drafts_${sessionId}`, JSON.stringify(drafts));
+    const draftsToSave = Object.keys(drafts).reduce((acc, key) => {
+      acc[key] = { code: drafts[key]?.code || '' };
+      return acc;
+    }, {});
+    localStorage.setItem(`drafts_${sessionId}`, JSON.stringify(draftsToSave));
   }, [drafts, sessionId]);
 
   useEffect(() => {
@@ -136,14 +119,6 @@ function InterviewRunner() {
         if (e.data.size > 0) audioChunksRef.current.push(e.data);
       };
 
-      mediaRecorderRef.current.onstop = () => {
-        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        setDrafts(prev => ({
-          ...prev,
-          [currentQuestionIndex]: { ...prev[currentQuestionIndex], audioBlob: blob }
-        }));
-      };
-
       mediaRecorderRef.current.start(1000);
       setIsRecording(true);
       setRecordingTime(0);
@@ -154,21 +129,35 @@ function InterviewRunner() {
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current?.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
-      streamRef.current?.getTracks().forEach(track => track.stop());
-      clearInterval(timerIntervalRef.current);
-      setIsRecording(false);
-    }
+    return new Promise((resolve) => {
+      if (mediaRecorderRef.current?.state !== 'inactive') {
+        mediaRecorderRef.current.onstop = () => {
+          const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+          setDrafts(prev => ({
+            ...prev,
+            [currentQuestionIndex]: { ...prev[currentQuestionIndex], audioBlob: blob }
+          }));
+          resolve(blob);
+        };
+        mediaRecorderRef.current.stop();
+        streamRef.current?.getTracks().forEach(track => track.stop());
+        clearInterval(timerIntervalRef.current);
+        setIsRecording(false);
+      } else {
+        resolve(null);
+      }
+    });
   };
 
   const handleSubmitAnswer = async () => {
     if (isQuestionLocked) return;
-    if (isRecording) stopRecording();
+    if (isRecording) {
+      await stopRecording();
+    }
 
     const draft = drafts[currentQuestionIndex];
     const code = draft?.code || '';
-    const audio = draft?.audioBlob;
+    const audio = draft?.audioBlob instanceof Blob ? draft.audioBlob : null;
 
     if (!code && !audio) {
       toast.warning("Please provide code or an audio answer.");
@@ -181,7 +170,9 @@ function InterviewRunner() {
     const formData = new FormData();
     formData.append('questionIndex', currentQuestionIndex);
     if (code) formData.append('code', code);
-    if (audio) formData.append('audioFile', audio, 'answer.webm');
+    if (audio instanceof Blob) {
+      formData.append('audioFile', audio, 'answer.webm');
+    }
 
     // ✅ 2. Send Request
     dispatch(submitAnswer({ sessionId, formData }))
@@ -189,14 +180,15 @@ function InterviewRunner() {
       .catch((err) => {
         // If backend fails, UNLOCK so user can try again
         setSubmittedLocal(prev => ({ ...prev, [currentQuestionIndex]: false }));
-        toast.error("Submission failed. Please try again.");
+        const msg = err || "Submission failed. Please try again.";
+        toast.error(msg);
       });
   };
 
   const handleFinishInterview = () => {
     if (!window.confirm("Are you sure you want to finish?")) return;
 
-    dispatch(endSession(sessionId))
+    dispatch(endSession({ sessionId }))
       .unwrap()
       .then(() => {
         localStorage.removeItem(`drafts_${sessionId}`);

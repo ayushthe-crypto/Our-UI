@@ -2,6 +2,8 @@ import cors from "cors";
 import express from "express";
 import http from "http";
 import dotenv from "dotenv";
+import path from 'path';
+import fs from 'fs';
 import { Server } from "socket.io";
 import connectDB from "./config/db.js";
 import userRoutes from "./routes/userRoutes.js";
@@ -39,6 +41,13 @@ app.use(cors({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// ensure the uploads folder is available for file uploads
+
+const uploadPath = path.resolve(process.cwd(), 'uploads');
+if (!fs.existsSync(uploadPath)) {
+    fs.mkdirSync(uploadPath, { recursive: true });
+}
 
 app.set("io", io);
 

@@ -87,7 +87,7 @@ export const submitAnswer = createAsyncThunk('sessions/submitAnswer', async ({ s
 
 export const endSession = createAsyncThunk('sessions/endSession', async (sessionId, thunkAPI) => {
     try {
-        const response = await api.post(`/${sessionId}/end`);
+        const response = await api.post(`/${sessionId}/end`, { status: 'completed' });
         return response.data;
     }
     catch (error) {

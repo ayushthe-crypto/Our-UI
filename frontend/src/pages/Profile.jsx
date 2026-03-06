@@ -3,25 +3,9 @@ import { useSelector, useDispatch } from 'react-redux'
 import { toast } from 'react-toastify'
 import { updateProfile, reset } from '../features/auth/authSlice'
 
+// keep only the data scientist option
 const ROLES = [
-  "MERN Stack Developer",
-  "MEAN Stack Developer",
-  "Full Stack Python",
-  "Full Stack Java",
-  "Frontend Developer",
-  "Backend Developer",
-  "Data Scientist",
-  "Data Analyst",
-  "Machine Learning Engineer",
-  "DevOps Engineer",
-  "Cloud Engineer (AWS/Azure/GCP)",
-  "Cybersecurity Engineer",
-  "Blockchain Developer",
-  "Mobile Developer (iOS/Android)",
-  "Game Developer",
-  "UI/UX Designer",
-  "QA Automation Engineer",
-  "Product Manager"
+  "Data Scientist"
 ];
 const inputBase = 'w-full bg-slate-50 border-2 border-transparent rounded-xl sm:rounded-2xl p-3.5  sm-4 fornt-semibold text-slate-700 text-base transition-all focus:bg-white focus:border-teal-500 outline-none';
 const Profile = () => {
@@ -31,7 +15,7 @@ const Profile = () => {
   const [formData, setFormData] = useState({
     name: user?.name || '',
     email: user?.email || '',
-    preferredRole: user?.preferredRole || '',
+    preferredRole: ROLES.includes(user?.preferredRole) ? user?.preferredRole : ROLES[0],
   })
 
   useEffect(() => {
@@ -46,7 +30,7 @@ const Profile = () => {
       setFormData({
         name: user?.name || '',
         email: user?.email || '',
-        preferredRole: user?.preferredRole || '',
+        preferredRole: ROLES.includes(user?.preferredRole) ? user?.preferredRole : ROLES[0],
       });
     }
   }, [user])

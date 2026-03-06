@@ -268,49 +268,55 @@ const evaluateAnswerAsync = async (io, userId, sessionId, questionIndex, audioFi
 // @route   POST /api/sessions/:id/submit-answer
 // @access  Private
 const submitAnswer = asyncHandler(async (req, res) => {
-    const sessionId = req.params.id;
-    const { questionIndex, code } = req.body; // Remove submissionType if not strictly needed
-    const userId = req.user._id;
+    try {
+        const sessionId = req.params.id;
+        const { questionIndex, code } = req.body; // Remove submissionType if not strictly needed
+        const userId = req.user._id;
 
-    const session = await Session.findById(sessionId);
+        const session = await Session.findById(sessionId);
 
-    if (!session || session.user.toString() !== userId.toString()) {
-        res.status(404);
-        throw new Error('Session not found or user unauthorized.');
+        if (!session || session.user.toString() !== userId.toString()) {
+            res.status(404);
+            throw new Error('Session not found or user unauthorized.');
+        }
+
+        const questionIdx = parseInt(questionIndex, 10);
+        const question = session.questions[questionIdx];
+
+        if (!question) {
+            res.status(400);
+            throw new Error(`Question at index ${questionIdx} not found.`);
+        }
+
+        // --- NEW UNIFIED LOGIC ---
+        let audioFilePath = null;
+        if (req.file) {
+            audioFilePath = path.join(process.cwd(), req.file.path);
+        }
+
+        // We no longer error out if one is missing; 
+        // we take whatever is provided (audio, code, or both).
+        const codeSubmission = code || null;
+
+        // 1. Update status in DB
+        question.isSubmitted = true;
+        await session.save();
+
+        // 2. Respond immediately
+        res.status(202).json({
+            message: 'Answer received. Processing asynchronously...',
+            status: 'received',
+        });
+
+        const io = req.app.get('io');
+
+        // 3. Start AI processing with BOTH potential inputs
+        evaluateAnswerAsync(io, userId, sessionId, questionIdx, audioFilePath, codeSubmission);
+    } catch (err) {
+        // log once for debugging and rethrow so errorMiddleware can handle it
+        console.error('submitAnswer error:', err);
+        throw err;
     }
-
-    const questionIdx = parseInt(questionIndex, 10);
-    const question = session.questions[questionIdx];
-
-    if (!question) {
-        res.status(400);
-        throw new Error(`Question at index ${questionIdx} not found.`);
-    }
-
-    // --- NEW UNIFIED LOGIC ---
-    let audioFilePath = null;
-    if (req.file) {
-        audioFilePath = path.join(process.cwd(), req.file.path);
-    }
-
-    // We no longer error out if one is missing; 
-    // we take whatever is provided (audio, code, or both).
-    const codeSubmission = code || null;
-
-    // 1. Update status in DB
-    question.isSubmitted = true;
-    await session.save();
-
-    // 2. Respond immediately
-    res.status(202).json({
-        message: 'Answer received. Processing asynchronously...',
-        status: 'received',
-    });
-
-    const io = req.app.get('io');
-
-    // 3. Start AI processing with BOTH potential inputs
-    evaluateAnswerAsync(io, userId, sessionId, questionIdx, audioFilePath, codeSubmission);
 });
 
 

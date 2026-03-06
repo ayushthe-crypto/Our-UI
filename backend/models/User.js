@@ -25,7 +25,7 @@ const userSchema=mongoose.Schema({
     } ,
     preferredRole:{
         type:String,
-        default:"MERN Stack Developer"
+        default:"Data Scientist"
     },
 },{
     timestamps:true

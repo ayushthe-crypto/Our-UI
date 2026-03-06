@@ -5,25 +5,9 @@ import { createSession, getSessions,reset,deleteSession } from '../features/sess
 import { toast } from 'react-toastify'
 import SessionCard from "../components/SessionCard"
 
+// Only Data Scientist role is supported now
 const ROLES = [
-  "MERN Stack Developer",
-  "MEAN Stack Developer",
-  "Full Stack Python",
-  "Full Stack Java",
-  "Frontend Developer",
-  "Backend Developer",
-  "Data Scientist",
-  "Data Analyst",
-  "Machine Learning Engineer",
-  "DevOps Engineer",
-  "Cloud Engineer (AWS/Azure/GCP)",
-  "Cybersecurity Engineer",
-  "Blockchain Developer",
-  "Mobile Developer (iOS/Android)",
-  "Game Developer",
-  "UI/UX Designer",
-  "QA Automation Engineer",
-  "Product Manager"
+  "Data Scientist"
 ];
 const LEVELS = ["Junior", "Mid-Level", "Senior"];
 const TYPES = [{ label: 'Oral only', value: 'oral-only' }, { label: 'Coding Mix', value: 'coding-mix' }];
@@ -37,7 +21,8 @@ const Dashboard = () => {
   const isProcessing = isGenerating;
 
   const [formData, setFormData] = useState({
-    role: user.preferredRole || ROLES[0],
+    // if stored role is not in allowed list, fallback to the single available one
+    role: ROLES.includes(user.preferredRole) ? user.preferredRole : ROLES[0],
     level: LEVELS[0],
     interviewType: TYPES[1].value,
     count: COUNTS[0],

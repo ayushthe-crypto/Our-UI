@@ -39,7 +39,8 @@ except Exception as e:
     print(e)
 
 class QuestionResquest(BaseModel):
-    role:str="MERN Stack Developer"
+    # only data scientist role is expected by frontend
+    role:str="Data Scientist"
     level:str="Junior"
     count:int=5
     interview_type:str="coding-mix"

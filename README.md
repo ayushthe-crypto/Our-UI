@@ -5,7 +5,7 @@ A full-stack application designed to simulate real-world technical interviews. I
 
 ## ✨ Key Features
 
-* **Customizable Interviews**: Select Role (MERN, Python, Data Science), Difficulty Level, and Interview Type (Oral vs. Coding Mix).
+* **Customizable Interviews**: Select Role (Data Scientist), Difficulty Level, and Interview Type (Oral vs. Coding Mix).
 * **Hybrid Input System**:
 * **🎙️ Voice Response**: Uses **OpenAI Whisper** to transcribe verbal answers for conceptual questions.
 * **💻 Code Editor**: Integrated **Monaco Editor** for solving coding challenges directly in the browser.
