@@ -30,6 +30,8 @@ function InterviewRunner() {
   // If submittedLocal[0] is true, we lock Question 0 immediately.
   const [submittedLocal, setSubmittedLocal] = useState({});
 
+  const [isTerminated, setIsTerminated] = useState(false);
+
   const [drafts, setDrafts] = useState(() => {
     const saved = localStorage.getItem(`drafts_${sessionId}`);
     if (saved) {
@@ -74,6 +76,32 @@ function InterviewRunner() {
   useEffect(() => {
     dispatch(getSessionById(sessionId));
   }, [dispatch, sessionId]);
+
+  // Strict Focus Mode: Proctoring feature
+  useEffect(() => {
+    const isInterviewActive = !!activeSession && !isTerminated;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden' && isInterviewActive) {
+        setIsTerminated(true);
+        if (isRecording) {
+          stopRecording();
+        }
+        if (timerIntervalRef.current) {
+          clearInterval(timerIntervalRef.current);
+          timerIntervalRef.current = null;
+        }
+        dispatch(endSession({ sessionId }));
+        navigate('/dashboard?error=unethical_behavior');
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [activeSession, isTerminated, dispatch, sessionId, navigate]);
 
   const currentQuestion = activeSession?.questions?.[currentQuestionIndex];
 

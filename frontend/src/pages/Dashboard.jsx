@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { useSelector, useDispatch } from 'react-redux'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { createSession, getSessions, reset, deleteSession } from '../features/sessions/sessionSlice'
 import { logout as authLogout, reset as authReset } from '../features/auth/authSlice'
 import { toast } from 'react-toastify'
@@ -33,12 +33,14 @@ const tips = [
 const Dashboard = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user } = useSelector((state) => state.auth);
   const { sessions, isLoading, isGenerating, isError, message } = useSelector((state) => state.sessions);
   const isProcessing = isGenerating;
   const dayIndex = new Date().getDate() % tips.length;
   const [tipIndex, setTipIndex] = useState(dayIndex);
   const [isFading, setIsFading] = useState(false);
+  const [violationAlert, setViolationAlert] = useState('');
 
   const nextTip = () => {
     setIsFading(true);
@@ -79,6 +81,15 @@ const Dashboard = () => {
       dispatch(reset());
     }
   }, [isError, message, dispatch]);
+
+  useEffect(() => {
+    const error = searchParams.get('error');
+    if (error === 'unethical_behavior') {
+      setViolationAlert('Session Terminated: Unfair means or unethical behavior was detected during your interview.');
+      toast.error('Session Terminated: Unfair means or unethical behavior was detected during your interview.');
+      navigate('/dashboard', { replace: true });
+    }
+  }, [searchParams, navigate]);
 
   const onChange = (e) => {
     setFormData((prevState) => ({ ...prevState, [e.target.name]: e.target.value }));
@@ -148,6 +159,11 @@ const Dashboard = () => {
         </aside>
 
         <main className="space-y-6">
+          {violationAlert && (
+            <div className="rounded-3xl border border-rose-400/20 bg-rose-500/10 p-4 text-rose-100 shadow-lg shadow-rose-500/10">
+              <p className="text-sm font-semibold">{violationAlert}</p>
+            </div>
+          )}
           <section className="rounded-[32px] border border-white/10 bg-slate-900/70 p-6 shadow-xl shadow-slate-950/30 backdrop-blur-xl">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
