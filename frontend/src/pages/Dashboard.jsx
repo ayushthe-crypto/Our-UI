@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react"
 import { useSelector, useDispatch } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
-import { createSession, getSessions,reset,deleteSession } from '../features/sessions/sessionSlice'
+import { createSession, getSessions, reset, deleteSession } from '../features/sessions/sessionSlice'
+import { logout as authLogout, reset as authReset } from '../features/auth/authSlice'
 import { toast } from 'react-toastify'
 import SessionCard from "../components/SessionCard"
 
@@ -12,6 +13,22 @@ const ROLES = [
 const LEVELS = ["Junior", "Mid-Level", "Senior"];
 const TYPES = [{ label: 'Oral only', value: 'oral-only' }, { label: 'Coding Mix', value: 'coding-mix' }];
 const COUNTS = [5, 10, 15];
+const tips = [
+  "Explain your thought process clearly in every answer.",
+  "Start with brute force, then optimize step by step.",
+  "Always ask clarifying questions before solving.",
+  "Use STAR method for behavioral answers.",
+  "Think out loud — silence is your enemy in interviews.",
+  "Practice edge cases before finalizing code.",
+  "Communicate trade-offs in system design.",
+  "Keep answers structured and concise.",
+  "Mock interviews improve confidence drastically.",
+  "Focus on problem-solving, not just syntax.",
+  "Revisit mistakes — that’s where real growth happens.",
+  "Time yourself while solving DSA questions.",
+  "Be honest if you don’t know something.",
+  "Confidence + clarity = strong impression."
+];
 
 const Dashboard = () => {
   const dispatch = useDispatch();
@@ -19,6 +36,17 @@ const Dashboard = () => {
   const { user } = useSelector((state) => state.auth);
   const { sessions, isLoading, isGenerating, isError, message } = useSelector((state) => state.sessions);
   const isProcessing = isGenerating;
+  const dayIndex = new Date().getDate() % tips.length;
+  const [tipIndex, setTipIndex] = useState(dayIndex);
+  const [isFading, setIsFading] = useState(false);
+
+  const nextTip = () => {
+    setIsFading(true);
+    setTimeout(() => {
+      setTipIndex((prev) => (prev + 1) % tips.length);
+      setIsFading(false);
+    }, 220);
+  };
 
   const [formData, setFormData] = useState({
     // if stored role is not in allowed list, fallback to the single available one
@@ -61,6 +89,19 @@ const Dashboard = () => {
     dispatch(createSession(formData));
   }
 
+  const onLogout = () => {
+    dispatch(authLogout());
+    dispatch(authReset());
+    navigate('/login');
+  }
+
+  const scrollToHistory = () => {
+    const section = document.getElementById('dashboard-history-section');
+    if (section) {
+      section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
   const viewSession = (session) => {
     if (session.status === 'completed') {
       navigate(`/review/${session._id}`);
@@ -86,36 +127,23 @@ const Dashboard = () => {
     <div className="min-h-screen bg-slate-950 px-4 py-6 sm:px-6 lg:px-8 text-slate-100">
       <div className="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
         <aside className="sticky top-6 rounded-[28px] border border-white/10 bg-slate-900/70 shadow-xl shadow-slate-950/40 backdrop-blur-xl p-6">
-          <div className="flex items-center justify-between gap-4 pb-6 border-b border-white/10">
-            <div className="rounded-3xl bg-slate-800/80 border border-white/10 p-3">
-              <span className="text-xl">🤖</span>
-            </div>
-            <div className="text-right">
-              <p className="text-[11px] uppercase tracking-[0.3em] text-slate-500">AI Interviewer</p>
-              <p className="mt-2 text-xs text-slate-400">Prep hub</p>
-            </div>
-          </div>
-
           <div className="mt-6 space-y-2">
-            <p className="text-sm text-slate-400">Dashboard menu</p>
-            <nav className="space-y-3">
-              <button className="w-full flex items-center gap-3 rounded-3xl border border-teal-500/30 bg-teal-500/10 px-4 py-3 text-left text-teal-200 shadow-inner shadow-teal-500/5">
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-teal-500/15 text-teal-300">D</span>
-                <span className="font-semibold">Dashboard</span>
+            <div className="mt-6 rounded-2xl border border-teal-400/10 bg-slate-950/70 p-4 shadow-[0_0_35px_rgba(16,185,129,0.06)] backdrop-blur-xl">
+              <div className="flex items-center gap-2 text-teal-300 mb-3">
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-teal-500/10 text-teal-200">💡</span>
+                <h3 className="text-sm font-black uppercase tracking-[0.25em]">Daily AI Tip</h3>
+              </div>
+              <p className={`text-sm leading-6 text-slate-300 transition-opacity duration-300 ${isFading ? 'opacity-0' : 'opacity-100'}`}>
+                {tips[tipIndex]}
+              </p>
+              <button
+                type="button"
+                onClick={nextTip}
+                className="mt-4 inline-flex items-center justify-center rounded-2xl border border-teal-400/20 bg-teal-500/10 px-3 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-teal-200 transition hover:bg-teal-500/15"
+              >
+                Next Tip
               </button>
-              <button className="w-full flex items-center gap-3 rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-left text-slate-300 hover:border-teal-400/30 hover:bg-slate-800/70">
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white/5 text-slate-300">P</span>
-                <span className="font-semibold">Profile</span>
-              </button>
-              <button className="w-full flex items-center gap-3 rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-left text-slate-300 hover:border-teal-400/30 hover:bg-slate-800/70">
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white/5 text-slate-300">H</span>
-                <span className="font-semibold">History</span>
-              </button>
-              <button className="w-full flex items-center gap-3 rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-left text-slate-300 hover:border-teal-400/30 hover:bg-slate-800/70">
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-white/5 text-slate-300">?</span>
-                <span className="font-semibold">Help</span>
-              </button>
-            </nav>
+            </div>
           </div>
         </aside>
 
@@ -316,7 +344,7 @@ const Dashboard = () => {
             </form>
           </section>
 
-          <section className="rounded-[32px] border border-white/10 bg-slate-900/70 p-6 shadow-xl shadow-slate-950/30 backdrop-blur-xl">
+          <section id="dashboard-history-section" className="rounded-[32px] border border-white/10 bg-slate-900/70 p-6 shadow-xl shadow-slate-950/30 backdrop-blur-xl">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm uppercase tracking-[0.28em] text-teal-400/80">Preparation History & Insights</p>
