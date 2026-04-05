@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useSelector, useDispatch } from 'react-redux'
-import { login, googleLogin, reset } from '../features/auth/authSlice'
+import { login, reset } from '../features/auth/authSlice'
 import { useNavigate, Link } from 'react-router-dom'
 import { toast } from 'react-toastify'
-import { GoogleLogin } from '@react-oauth/google'
+
 const Login = () => {
 
   const [formData, setFormData] = useState({
@@ -20,24 +20,20 @@ const Login = () => {
 
   useEffect(() => {
     if (isError) {
-      toast.error(message);
+      toast.error(message)
       dispatch(reset())
     }
 
     if (isSuccess || user) {
-      navigate('/');
+      navigate('/')
       dispatch(reset())
     }
-
-
   }, [user, isError, isSuccess, message, navigate, dispatch])
-
-
 
   const onChange = (e) => {
     setFormData((prevState) => ({
       ...prevState,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     }))
   }
 
@@ -45,85 +41,89 @@ const Login = () => {
     e.preventDefault()
 
     const userData = {
-
       email,
-      password
+      password,
     }
+
     dispatch(login(userData))
-
-  }
-
-  const handleGoogleSuccess = (credentialResponse) => {
-    if (credentialResponse.credential) {
-      dispatch(googleLogin(credentialResponse.credential))
-    } else {
-      toast.error('Something went wrong. Please try again.')
-    }
   }
 
   if (isLoading) {
     return (
-      <div className='flex justify-center items-center h-screen'>
-        <div className='animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-500'></div>
+      <div className='flex justify-center items-center h-screen bg-gradient-to-r from-indigo-600 via-purple-600 to-fuchsia-600'>
+        <div className='animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white'></div>
       </div>
     )
   }
 
   return (
-    <div className='flex justify-center items-center min-h-[90vh] bg-gray-50 sm:px-6 py-10'>
-      <div className='w-full max-w-md bg-white p-6 sm:p-10 border border-gray-200 rounded-2xl shadow-xl' >
-        <div className='text-center mb-8'>
-          <h2 className='text-xs font-black uppercase tracking-[0.3em] text-teal-600 mb-2'>AI Interviewer</h2>
-          <h1 className='text-3xl sm:text-4xl font-black text-gray-900 leading-tight'>Welcome <span className='text-teal-500'>Back</span></h1>
-          <p className='text-gray-500 mt-3 text-sm sm:text-base px-2'>
-            Sign In to sharpen your technical skills.
-          </p>
-        </div>
+    <div className='min-h-screen bg-[var(--background-gradient)] py-10'>
+      <div className='mx-auto max-w-7xl px-4 sm:px-6 lg:px-8'>
+        <div className='grid grid-cols-1 lg:grid-cols-2 gap-8 items-center'>
+          <div className='relative overflow-hidden rounded-3xl bg-white shadow-2xl'>
+            <div className='absolute -left-16 -top-16 h-48 w-48 rounded-full bg-teal-300 opacity-30 blur-3xl'></div>
+            <div className='absolute -bottom-20 -right-16 h-72 w-72 rounded-full bg-pink-300 opacity-30 blur-3xl'></div>
 
-        <form onSubmit={onSubmit} className='grid grid-cols-1 gap-4'>
+            <div className='relative z-10 p-8 sm:p-12'>
+              <div className='mb-8'>
+                <p className='text-xs font-black uppercase tracking-widest text-teal-500'>Prepare better. Perform smarter</p>
+                <h1 className='mt-4 text-3xl sm:text-4xl font-extrabold text-slate-900'>Welcome Back</h1>
+                <p className='mt-3 text-slate-600 text-sm sm:text-base'>The difference between dreaming and achieving starts right here.</p>
+              </div>
 
-          <div className='space-y-1'>
-            <label className='text-[10px] font-bold uppercase text-gray-400 ml-1'>Email</label>
-            <input type="email" name="email" value={email} className='w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none transition-all ' placeholder='siddhant@gmail.com' onChange={onChange} required />
+              <form onSubmit={onSubmit} className='grid grid-cols-1 gap-4'>
+                <div className='space-y-1'>
+                  <label htmlFor='email' className='text-[10px] font-bold uppercase tracking-wider text-slate-500'>Email</label>
+                  <input
+                    id='email'
+                    type='email'
+                    name='email'
+                    value={email}
+                    onChange={onChange}
+                    required
+                    className='w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-200 transition'
+                    placeholder='kushagra@gmail.com'
+                  />
+                </div>
 
+                <div className='space-y-1'>
+                  <label htmlFor='password' className='text-[10px] font-bold uppercase tracking-wider text-slate-500'>Password</label>
+                  <input
+                    id='password'
+                    type='password'
+                    name='password'
+                    value={password}
+                    onChange={onChange}
+                    required
+                    className='w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-200 transition'
+                    placeholder='Enter your password'
+                  />
+                </div>
+
+                <button type='submit' className='w-full rounded-xl bg-[linear-gradient(135deg,#10b981_0%,#059669_100%)] px-6 py-3 text-base font-bold text-white shadow-lg shadow-emerald-300 transition hover:bg-[linear-gradient(135deg,#34d399_0%,#10b981_100%)] active:scale-[0.98]'>Login to Account</button>
+              </form>
+
+              <p className='mt-6 text-center text-sm text-slate-500'>
+                New here? <Link to='/register' className='font-semibold text-teal-500 hover:text-teal-600'>Create an account</Link>
+              </p>
+            </div>
           </div>
 
-          <div className='space-y-1'>
-            <label className='text-[10px] font-bold uppercase text-gray-400 ml-1'>Password</label>
-            <input type="password" name="password" value={password} className='w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-teal-500 outline-none transition-all ' placeholder='********' onChange={onChange} required />
-
+          <div className='relative hidden h-[480px] rounded-3xl shadow-2xl lg:block'>
+            <img
+              src='https://image2url.com/r2/default/images/1775318489764-11396304-57d5-47c8-a415-9956f1b2ac93.jpeg'
+              alt='AI Assessment'
+              className='h-full w-full object-cover rounded-3xl'
+            />
+            <div className='absolute inset-0 bg-gradient-to-tr from-black/40 via-transparent to-black/40 rounded-3xl' />
+            <div className='absolute bottom-8 left-8 right-8 text-white'>
+              <p className='text-sm font-medium uppercase tracking-wider text-teal-200'>Transform the way you learn</p>
+              <h2 className='mt-2 text-2xl font-bold'>Interactive coding interviews, AI insights, real-time feedback</h2>
+            </div>
           </div>
-
-
-          <button type="submit" className='w-full bg-teal-600 text-white p-3.5 rounded-xl font-bold hover:bg-teal-700 transition-all shadow-lg shadow-teal-100 mt-4 active:scale-[0.98]'>Login to Account</button>
-        </form>
-
-        <div className="my-8 flex items-center">
-          <div className="flex-grow border-t border-gray-300"></div>
-          <span className="mx-4 text-gray-400 text-[10px] font-black tracking-widest uppercase">Social Login</span>
-          <div className="flex-grow border-t border-gray-300"></div>
         </div>
-
-        <div className="w-full flex items-center justify-center">
-          <GoogleLogin
-            onSuccess={handleGoogleSuccess}
-            onError={() => toast.error('Google login failed')}
-            theme="outline"
-            size="large"
-            width="100%"
-            text="continue_with"
-            shape="circle"
-          />
-        </div>
-
-        <p className="mt-8 text-center text-sm text-gray-500">
-          New here? <Link to="/register" className="text-teal-600 font-bold hover:underline">Create an account</Link>
-        </p>
-
       </div>
     </div>
-
-
   )
 }
 

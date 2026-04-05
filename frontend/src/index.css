@@ -3,6 +3,13 @@
 @tailwind utilities;
 
 
+:root {
+  --background-gradient: radial-gradient(circle at 25% 25%, rgba(16, 185, 129, 0.4) 0%, transparent 50%),
+                          radial-gradient(circle at 75% 75%, rgba(5, 150, 105, 0.4) 0%, transparent 50%),
+                          radial-gradient(circle at 50% 50%, rgba(20, 83, 45, 0.3) 0%, transparent 50%),
+                          #0f172a;
+}
+
 body {
   @apply bg-gray-50;
 }

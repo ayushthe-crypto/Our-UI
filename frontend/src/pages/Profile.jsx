@@ -7,7 +7,7 @@ import { updateProfile, reset } from '../features/auth/authSlice'
 const ROLES = [
   "Data Scientist"
 ];
-const inputBase = 'w-full bg-slate-50 border-2 border-transparent rounded-xl sm:rounded-2xl p-3.5  sm-4 fornt-semibold text-slate-700 text-base transition-all focus:bg-white focus:border-teal-500 outline-none';
+const inputBase = 'w-full bg-slate-700 border-2 border-transparent rounded-xl sm:rounded-2xl p-3.5  sm-4 fornt-semibold text-white text-base transition-all focus:bg-slate-600 focus:border-teal-500 outline-none';
 const Profile = () => {
   const dispatch = useDispatch();
   const { user, isSuccess, isError, message, isProfileLoading } = useSelector((state) => state.auth);
@@ -50,10 +50,10 @@ const Profile = () => {
   }
   return (
     <div className='max-w-4xl mx-auto px-4 py-6 sm:py-12 pb-24'>
-      <div className='bg-white rounded-3xl shadow-xl sm:shadow-2xl p-6 sm:p-12 border border-slate-100'>
+      <div className='bg-slate-800 rounded-3xl shadow-xl sm:shadow-2xl p-6 sm:p-12 border border-slate-700'>
         <header className='mb-8'>
-          <h1 className='text-2xl sm:text-3xl font-black text-slate-900'>Edit Profile</h1>
-          <p className='text-sm text-slate-500 mt-1'>
+          <h1 className='text-2xl sm:text-3xl font-black text-white'>Edit Profile</h1>
+          <p className='text-sm text-slate-400 mt-1'>
             Update your professional details and preferences
           </p>
         </header>
@@ -74,7 +74,7 @@ const Profile = () => {
           <FormField label="Email Address (Fixed)" muted>
             <input
               type="email"
-              className='w-full bg-slate-100 rounded-xl sm:rounded-2xl p-3.5  sm-4 fornt-semibold text-slate-500 text-base cursor-not-allowed'
+              className='w-full bg-slate-600 rounded-xl sm:rounded-2xl p-3.5  sm-4 fornt-semibold text-slate-400 text-base cursor-not-allowed'
               disabled
               value={formData.email}
               onChange={handleChange}

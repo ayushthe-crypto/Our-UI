@@ -224,10 +224,9 @@ const evaluateAnswerAsync = async (io, userId, sessionId, questionIndex, audioFi
         question.userAnswerText = transcription; 
         question.userSubmittedCode = code || ""; 
 
-        question.technicalScore = evalData.technicalScore;
+        question.score = evalData.score;
         question.confidenceScore = evalData.confidenceScore;
-        question.aiFeedback = evalData.aiFeedback;
-        question.idealAnswer = evalData.idealAnswer;
+        question.feedback = evalData.feedback;
         question.isEvaluated = true;
 
         // Check if all questions in the entire session are now evaluated
@@ -331,7 +330,7 @@ const calculateOverallScore = async (sessionId) => {
                 _id: '$_id',
                 // If a question is evaluated, use its score; otherwise, use 0.
                 avgTechnical: {
-                    $avg: { $cond: [{ $eq: ['$questions.isEvaluated', true] }, '$questions.technicalScore', 0] }
+                    $avg: { $cond: [{ $eq: ['$questions.isEvaluated', true] }, '$questions.score', 0] }
                 },
                 avgConfidence: {
                     $avg: { $cond: [{ $eq: ['$questions.isEvaluated', true] }, '$questions.confidenceScore', 0] }

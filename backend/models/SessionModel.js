@@ -10,10 +10,6 @@ const questionSchema = new mongoose.Schema({
         enum:["coding","oral"],
         required:true
     },
-    idealAnswer:{
-        type:String,
-        default:"pending"
-    },
     userAnswerText:{
         type:String,
         default:""
@@ -30,7 +26,7 @@ const questionSchema = new mongoose.Schema({
         type:Boolean,
         default:false
     },
-    technicalScore:{
+    score:{
         type:Number,
         default:0
     },
@@ -38,7 +34,7 @@ const questionSchema = new mongoose.Schema({
         type:Number,
         default:0
     },
-    aiFeedback:{
+    feedback:{
         type:String,
         default:"Not yet submitted or evaluated"
     }

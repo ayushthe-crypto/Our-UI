@@ -5,7 +5,8 @@ import { socketUpdateSession } from '../features/sessions/sessionSlice';
 import { useNavigate } from 'react-router-dom';
 import io from 'socket.io-client';
 
-const BACKEND_URL = import.meta.env.VITE_API_URL.replace('/api', ''); 
+const BACKEND_URL =
+  (import.meta.env.VITE_API_URL || "http://localhost:5000/api").replace("/api", ""); 
 
 const useSocket = () => {
   const dispatch = useDispatch();
@@ -17,8 +18,10 @@ const useSocket = () => {
     if (user && user._id) {
       
       const socket = io(BACKEND_URL, {
-        query: { userId: user._id },
-        transports: ['websocket'],
+      query: { userId: user._id },
+      transports: ["websocket"],
+      reconnection: true,
+      reconnectionAttempts: 5,
       });
       socketRef.current = socket;
 
@@ -34,8 +37,9 @@ const useSocket = () => {
         console.log('Real-time Session Update:', payload.status);
         
         dispatch(socketUpdateSession(payload));
-        if (payload.status === 'QUESTIONS_READY') {
-            navigate(`/interview/${payload.sessionId}`);
+
+        if (payload?.status === 'QUESTIONS_READY' && payload?.sessionId) {
+          navigate(`/interview/${payload.sessionId}`, { replace: true });
         }
       });
 
@@ -44,7 +48,7 @@ const useSocket = () => {
         socket.disconnect();
       };
     }
-  }, [user, dispatch, navigate]); 
+  }, [user?._id]); 
 
   return socketRef.current;
 };
