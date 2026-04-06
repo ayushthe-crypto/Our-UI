@@ -68,7 +68,8 @@ const createSession = asyncHandler(async (req, res) => {
                     role,
                     level,
                     count,
-                    interview_type: interviewType // ADD THIS LINE
+                    interview_type: interviewType,
+                    language: "python" // ADD THIS LINE
                 }),
             });
 
@@ -79,7 +80,7 @@ const createSession = asyncHandler(async (req, res) => {
             }
 
             const aiData = await aiResponse.json();
-            const codingCount = interviewType === 'coding-mix' ? Math.floor(count * 0.2) : 0;
+            const codingCount = interviewType === 'coding-mix' ? Math.floor(count * 0.5) : 0;
             // C. Map the raw questions into the structured Mongoose sub-document format
             const questionsArray = aiData.questions.map((qText, index) => ({
                 questionText: qText,

@@ -92,7 +92,11 @@ const Dashboard = () => {
   }, [searchParams, navigate]);
 
   const onChange = (e) => {
-    setFormData((prevState) => ({ ...prevState, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    setFormData((prevState) => ({
+      ...prevState,
+      [name]: name === 'count' ? parseInt(value, 10) : value
+    }));
   }
 
   const onSubmit = (e) => {
@@ -296,17 +300,14 @@ const Dashboard = () => {
                   </div>
                   <div className="mt-4 grid gap-3 sm:grid-cols-3">
                     {COUNTS.map((count) => (
-                      <label key={count} className={`cursor-pointer rounded-3xl border p-4 text-center transition ${formData.count === count ? 'border-teal-400 bg-teal-500/15 text-teal-200' : 'border-white/10 bg-white/5 text-slate-200 hover:border-teal-400/40 hover:bg-slate-800/70'}`}>
-                        <input
-                          type="radio"
-                          name="count"
-                          value={count}
-                          checked={formData.count === count}
-                          onChange={onChange}
-                          className="sr-only"
-                        />
+                      <button
+                        key={count}
+                        type="button"
+                        onClick={() => setFormData(prev => ({ ...prev, count }))}
+                        className={`rounded-3xl border p-4 text-center transition ${formData.count === count ? 'border-teal-400 bg-teal-500/15 text-teal-200' : 'border-white/10 bg-white/5 text-slate-200 hover:border-teal-400/40 hover:bg-slate-800/70'}`}
+                      >
                         <p className="font-semibold">{count} Qs</p>
-                      </label>
+                      </button>
                     ))}
                   </div>
                 </div>

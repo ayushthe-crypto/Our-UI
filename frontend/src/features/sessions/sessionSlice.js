@@ -85,8 +85,12 @@ export const submitAnswer = createAsyncThunk('sessions/submitAnswer', async ({ s
     }
 })
 
-export const endSession = createAsyncThunk('sessions/endSession', async (sessionId, thunkAPI) => {
+export const endSession = createAsyncThunk('sessions/endSession', async ({ sessionId }, thunkAPI) => {
     try {
+        // Validate sessionId before making the API call
+        if (!sessionId || typeof sessionId !== 'string') {
+            return thunkAPI.rejectWithValue('Invalid sessionId: must be a non-empty string');
+        }
         const response = await api.post(`/${sessionId}/end`, { status: 'completed' });
         return response.data;
     }
@@ -175,6 +179,18 @@ export const sessionSlice = createSlice({
                 
             })
             .addCase(submitAnswer.rejected, (state, action) => {
+                state.isError = true;
+                state.message = action.payload;
+            })
+            .addCase(endSession.pending, (state) => {
+                state.isLoading = true;
+            })
+            .addCase(endSession.fulfilled, (state, action) => {
+                state.isLoading = false;
+                state.activeSession = action.payload;
+            })
+            .addCase(endSession.rejected, (state, action) => {
+                state.isLoading = false;
                 state.isError = true;
                 state.message = action.payload;
             });

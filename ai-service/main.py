@@ -49,6 +49,7 @@ class QuestionRequest(BaseModel):
     level: str = "Junior"
     count: int = 5
     interview_type: str = "coding-mix"
+    language: str = "python"
 
 
 class QuestionResponse(BaseModel):
@@ -91,20 +92,74 @@ async def root():
 @app.post("/generate-questions", response_model=QuestionResponse)
 async def generate_questions(request: QuestionRequest):
     try:
-        system_prompt = """
-You are a professional technical interviewer.
+        # Determine difficulty guidelines based on level
+        difficulty_guidelines = {
+            "Junior": """
+- Focus on basic data structures (arrays, lists, dictionaries)
+- Include fundamental algorithms (sorting, searching, loops)
+- Simple syntax and concept validation
+- Examples: "Write a function to find the mean of a list", "Implement a simple for-loop pattern", "Basic data cleaning operations"
+""",
+            "Mid": """
+- Focus on intermediate algorithms and optimization techniques
+- Include moderate system design concepts
+- Data processing and manipulation at scale
+- Examples: "Implement an efficient algorithm with O(n log n) complexity", "Optimize this slow data processing pipeline", "Design a caching strategy for repeated queries"
+""",
+            "Senior": """
+- Focus on complex optimization and advanced system design
+- Advanced data processing and architectures
+- Performance profiling and scaling challenges
+- Examples: "Design and implement a custom cross-validation loop for ML", "Architect a distributed cache system", "Optimize complex data transformation pipelines"
+"""
+        }
 
-Generate interview questions.
+        level_guidelines = difficulty_guidelines.get(request.level, difficulty_guidelines["Junior"])
 
-Rules:
-- Return only questions
-- No numbering
-- No explanations
+        # Build interview type specific prompt
+        interview_type_instruction = ""
+        if request.interview_type == "coding-mix":
+            interview_type_instruction = "When 'Coding Mix' is selected, provide a mix of theoretical and practical coding challenges. Ensure the coding questions are calibrated for a {request.level} {request.role} and explicitly mention the {request.language} the candidate should use."
+        elif request.interview_type == "oral-only":
+            interview_type_instruction = """
+IMPORTANT FOR ORAL-ONLY INTERVIEWS:
+- Generate theoretical and conceptual questions suitable for verbal discussion
+- Focus on understanding, design thinking, and problem-solving approach
+- Questions should not require writing code, but may reference code concepts
+"""
+
+        system_prompt = f"""
+You are a professional technical interviewer specializing in {request.role} interviews.
+
+ROLE: {request.role}
+LEVEL: {request.level}
+LANGUAGE: {request.language}
+INTERVIEW TYPE: {request.interview_type.upper()}
+
+{interview_type_instruction}
+
+DIFFICULTY LEVEL GUIDELINES:
+{level_guidelines}
+
+FORMATTING RULES:
+- Return ONLY the interview questions
+- NO numbering (no "1.", "2.", etc.)
+- NO explanations or introductions
 - One question per line
+- Each question must be complete and standalone
+- For coding questions, explicitly state the language (e.g., "Write a Python function to...")
+- For coding questions, include any necessary context or example input/output if relevant
 """
 
         user_prompt = f"""
-Generate {request.count} interview questions for a {request.level} {request.role}.
+Generate exactly {request.count} interview questions for a {request.level} {request.role}.
+Interview Type: {request.interview_type}
+
+Requirements:
+- Calibrate each question for the {request.level} level
+- Explicitly mention that solutions should use {request.language}
+- Make questions specific, actionable, and relevant to {request.role}
+- For {request.interview_type}, follow the mixing requirements specified in the system prompt
 """
 
         try:
