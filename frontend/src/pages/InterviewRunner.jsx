@@ -15,7 +15,8 @@ const SUPPORTED_LANGUAGES = [
 const ROLE_LANGUAGE_MAP = {
   "Data Scientist": "python"
 };
-function InterviewRunner() {
+
+const InterviewRunner = () => {
   const { sessionId } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -78,8 +79,13 @@ function InterviewRunner() {
 
   // Timeout to reset stuck submissions
   useEffect(() => {
+    const pendingIndices = Object.keys(submittedLocal).filter(
+      idx => submittedLocal[idx] && !activeSession?.questions?.[idx]?.isEvaluated
+    );
+    if (pendingIndices.length === 0) return;
+
     const timeoutId = setTimeout(() => {
-      Object.keys(submittedLocal).forEach(index => {
+      pendingIndices.forEach(index => {
         const idx = parseInt(index);
         const question = activeSession?.questions?.[idx];
         if (submittedLocal[idx] && question && !question.isEvaluated) {
@@ -88,10 +94,10 @@ function InterviewRunner() {
           toast.error("Audio transcription timed out. Please try submitting again.");
         }
       });
-    }, 30000); // 30 seconds
+    }, 120000); // 2 minutes
 
     return () => clearTimeout(timeoutId);
-  }, [submittedLocal, activeSession?.questions]);
+  }, [JSON.stringify(submittedLocal), JSON.stringify(activeSession?.questions || [])]);
 
   // Strict Focus Mode: Proctoring feature
   useEffect(() => {
@@ -195,13 +201,16 @@ function InterviewRunner() {
 
   const handleSubmitAnswer = async () => {
     if (isQuestionLocked) return;
+    let freshAudioBlob = null;
     if (isRecording) {
-      await stopRecording();
+      freshAudioBlob = await stopRecording();
     }
 
     const draft = drafts[currentQuestionIndex];
     const code = draft?.code || '';
-    const audio = draft?.audioBlob instanceof Blob ? draft.audioBlob : null;
+    const audio = freshAudioBlob instanceof Blob
+      ? freshAudioBlob
+      : draft?.audioBlob;
 
     if (!code && !audio) {
       toast.warning("Please provide code or an audio answer.");
@@ -264,6 +273,15 @@ function InterviewRunner() {
   const currentDraft = drafts[currentQuestionIndex] || {};
   const isOralOnly = activeSession?.interviewType === "oral-only";
   const isCodingMix = activeSession?.interviewType === "coding-mix";
+  const resolvedFeedback = (
+    currentQuestion?.aiFeedback ||
+    currentQuestion?.feedback ||
+    ""
+  ).trim();
+  const resolvedScore = Number.isFinite(Number(currentQuestion?.technicalScore))
+    ? Number(currentQuestion.technicalScore)
+    : Number(currentQuestion?.score ?? 0);
+  const resolvedSpokenAnswer = (currentQuestion?.userAnswerText || "").trim();
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 pb-32">
@@ -364,9 +382,12 @@ function InterviewRunner() {
       {currentQuestion?.isEvaluated && (
         <div className="mt-6 bg-emerald-500/10 backdrop-blur-md border border-emerald-500/20 p-6 rounded-2xl animate-in fade-in slide-in-from-bottom-4">
           <h3 className="text-emerald-300 font-bold mb-2">💡 AI Feedback</h3>
-          <p className="text-emerald-200 text-sm leading-relaxed">{currentQuestion.aiFeedback}</p>
+          <p className="text-emerald-300/90 text-xs font-bold uppercase tracking-wide mb-1">Your Spoken Answer</p>
+          <p className="text-emerald-100 text-sm leading-relaxed mb-4">{resolvedSpokenAnswer || "No transcription captured."}</p>
+          <p className="text-emerald-300/90 text-xs font-bold uppercase tracking-wide mb-1">AI Assessment</p>
+          <p className="text-emerald-200 text-sm leading-relaxed">{resolvedFeedback || "No detailed feedback returned yet. Please submit again for a full review."}</p>
           <div className="mt-4 flex gap-4">
-            <span className="bg-emerald-500/20 px-3 py-1 rounded-lg text-xs font-bold text-emerald-300 shadow-sm">Score: {currentQuestion.technicalScore}/100</span>
+            <span className="bg-emerald-500/20 px-3 py-1 rounded-lg text-xs font-bold text-emerald-300 shadow-sm">Score: {resolvedScore}/100</span>
           </div>
         </div>
       )}

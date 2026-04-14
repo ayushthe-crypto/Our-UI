@@ -124,6 +124,7 @@ export const sessionSlice = createSlice({
                     const incomingQ = session.questions[index];
                     if (!incomingQ) return currentQ;
                     if (incomingQ.isEvaluated) return incomingQ;
+                    if (status === 'EVALUATION_FAILED') return incomingQ;
                     if (currentQ.isSubmitted && !incomingQ.isSubmitted) return currentQ;
                     return incomingQ;
                 });

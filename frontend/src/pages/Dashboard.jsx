@@ -6,10 +6,16 @@ import { logout as authLogout, reset as authReset } from '../features/auth/authS
 import { toast } from 'react-toastify'
 import SessionCard from "../components/SessionCard"
 
-// Only Data Scientist role is supported now
+// Supported interview roles
 const ROLES = [
-  "Data Scientist"
+  "Data Scientist",
+  "HR/Behavioral"
 ];
+
+const ROLE_DESCRIPTIONS = {
+  "Data Scientist": "Detailed data science interview with monitoring and case study support.",
+  "HR/Behavioral": "Behavioral and situational interview focused on communication, culture fit, leadership, conflict resolution, and adaptability."
+};
 const LEVELS = ["Junior", "Mid-Level", "Senior"];
 const TYPES = [{ label: 'Oral only', value: 'oral-only' }, { label: 'Coding Mix', value: 'coding-mix' }];
 const COUNTS = [5, 10, 15];
@@ -57,6 +63,16 @@ const Dashboard = () => {
     interviewType: TYPES[1].value,
     count: COUNTS[0],
   });
+
+  // Auto-select "Oral only" when HR/Behavioral is chosen
+  useEffect(() => {
+    if (formData.role === "HR/Behavioral") {
+      setFormData(prev => ({
+        ...prev,
+        interviewType: 'oral-only'
+      }));
+    }
+  }, [formData.role]);
 
   const completedSessions = sessions.filter((session) => typeof session.overallScore === 'number');
   const sessionsCompleted = sessions.filter((session) => session.status === 'completed').length;
@@ -250,9 +266,9 @@ const Dashboard = () => {
               <div className="rounded-[28px] border border-white/10 bg-slate-950/40 p-5">
                 <div className="flex items-center justify-between text-sm uppercase tracking-[0.32em] text-slate-400">
                   <span>Step 1: Role Selection</span>
-                  <span className="text-teal-300">Data Scientist</span>
+                  <span className="text-teal-300">{formData.role}</span>
                 </div>
-                <div className="mt-4 grid gap-3 sm:grid-cols-1">
+                <div className="mt-4 grid gap-3 sm:grid-cols-1 lg:grid-cols-3">
                   {ROLES.map((role) => (
                     <label key={role} className={`cursor-pointer rounded-3xl border p-4 transition ${formData.role === role ? 'border-teal-400 bg-teal-500/15 text-teal-200' : 'border-white/10 bg-white/5 text-slate-200 hover:border-teal-400/40 hover:bg-slate-800/70'}`}>
                       <input
@@ -264,7 +280,7 @@ const Dashboard = () => {
                         className="sr-only"
                       />
                       <p className="text-base font-semibold">{role}</p>
-                      <p className="mt-2 text-sm text-slate-400">Detailed data science interview with monitoring and case study support.</p>
+                      <p className="mt-2 text-sm text-slate-400">{ROLE_DESCRIPTIONS[role]}</p>
                     </label>
                   ))}
                 </div>
@@ -319,17 +335,19 @@ const Dashboard = () => {
                 </div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   {TYPES.map((type) => (
-                    <label key={type.value} className={`cursor-pointer rounded-3xl border p-4 transition ${formData.interviewType === type.value ? 'border-teal-400 bg-teal-500/15 text-teal-200' : 'border-white/10 bg-white/5 text-slate-200 hover:border-teal-400/40 hover:bg-slate-800/70'}`}>
-                      <input
-                        type="radio"
-                        name="interviewType"
-                        value={type.value}
-                        checked={formData.interviewType === type.value}
-                        onChange={onChange}
-                        className="sr-only"
-                      />
-                      <p className="font-semibold">{type.label}</p>
-                    </label>
+                    formData.role === "HR/Behavioral" && type.value === "coding-mix" ? null : (
+                      <label key={type.value} className={`cursor-pointer rounded-3xl border p-4 transition ${formData.interviewType === type.value ? 'border-teal-400 bg-teal-500/15 text-teal-200' : 'border-white/10 bg-white/5 text-slate-200 hover:border-teal-400/40 hover:bg-slate-800/70'}`}>
+                        <input
+                          type="radio"
+                          name="interviewType"
+                          value={type.value}
+                          checked={formData.interviewType === type.value}
+                          onChange={onChange}
+                          className="sr-only"
+                        />
+                        <p className="font-semibold">{type.label}</p>
+                      </label>
+                    )
                   ))}
                 </div>
               </div>

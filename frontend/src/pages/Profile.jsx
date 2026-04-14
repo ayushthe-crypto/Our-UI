@@ -5,7 +5,8 @@ import { updateProfile, reset } from '../features/auth/authSlice'
 
 // keep only the data scientist option
 const ROLES = [
-  "Data Scientist"
+  "Data Scientist",
+  "HR/Behavioral"
 ];
 const inputBase = 'w-full bg-slate-700 border-2 border-transparent rounded-xl sm:rounded-2xl p-3.5  sm-4 fornt-semibold text-white text-base transition-all focus:bg-slate-600 focus:border-teal-500 outline-none';
 const Profile = () => {

@@ -176,27 +176,60 @@ const evaluateAnswerAsync = async (io, userId, sessionId, questionIndex, audioFi
 
     // --- Phase 1: Transcription (Only if audio exists) ---
     if (audioFilePath) {
+        const transcribeController = new AbortController();
+        let transcribeTimeout = null;
         try {
             pushSocketUpdate(io, userId, sessionId, 'AI_TRANSCRIBING', `Transcribing audio for Q${questionIdx + 1}...`);
             const formData = new FormData();
             formData.append('file', fs.createReadStream(audioFilePath));
 
+            transcribeTimeout = setTimeout(() => transcribeController.abort(), 120000);
             const transResponse = await fetch(`${AI_SERVICE_URL}/transcribe`, {
                 method: 'POST',
                 body: formData,
                 headers: formData.getHeaders(),
+                signal: transcribeController.signal,
             });
 
-            if (!transResponse.ok) throw new Error('Transcription service failed');
+            if (!transResponse.ok) {
+                const transErrorBody = await transResponse.text();
+                throw new Error(`Transcription service failed (${transResponse.status}): ${transErrorBody}`);
+            }
 
             const transData = await transResponse.json();
-            transcription = transData.transcription || "";
+            const receivedTranscription = (transData.transcription || "").trim();
+            if (receivedTranscription) {
+                transcription = receivedTranscription;
+            }
         } catch (error) {
             console.error(`Transcription Error: ${error.message}`);
-            // We continue even if transcription fails so the code can still be evaluated
         } finally {
+            if (transcribeTimeout) {
+                clearTimeout(transcribeTimeout);
+            }
             if (audioFilePath && fs.existsSync(audioFilePath)) fs.unlinkSync(audioFilePath);
         }
+    }
+
+    // For oral questions, do not continue to evaluation if audio transcription is empty.
+    if (question.questionType === 'oral' && !transcription.trim()) {
+        question.isSubmitted = false;
+        question.isEvaluated = false;
+        question.userAnswerText = "";
+        question.score = 0;
+        question.confidenceScore = 0;
+        question.feedback = "Transcription failed. Please submit your audio answer again.";
+        await session.save();
+
+        pushSocketUpdate(
+            io,
+            userId,
+            sessionId,
+            'EVALUATION_FAILED',
+            `Audio transcription failed for Q${questionIdx + 1}. Please submit again.`,
+            session
+        );
+        return;
     }
 
     // --- Phase 2: AI Evaluation ---
@@ -303,10 +336,8 @@ const submitAnswer = asyncHandler(async (req, res) => {
         await session.save();
 
         // 2. Respond immediately
-        res.status(202).json({
-            message: 'Answer received. Processing asynchronously...',
-            status: 'received',
-        });
+        const updatedSession = await Session.findById(sessionId);
+        res.status(202).json(updatedSession);
 
         const io = req.app.get('io');
 
