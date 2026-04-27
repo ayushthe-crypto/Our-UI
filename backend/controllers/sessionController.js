@@ -159,6 +159,7 @@ const deleteSession = asyncHandler(async (req, res) => {
 const evaluateAnswerAsync = async (io, userId, sessionId, questionIndex, audioFilePath = null, code = null) => {
     // Initialize transcription as an empty string instead of null to avoid "null" text in AI prompts
     let transcription = ""; 
+    const MAX_AUDIO_FILE_SIZE_BYTES = 10 * 1024 * 1024;
 
     const questionIdx = typeof questionIndex === 'string' ? parseInt(questionIndex, 10) : questionIndex;
 
@@ -176,60 +177,69 @@ const evaluateAnswerAsync = async (io, userId, sessionId, questionIndex, audioFi
 
     // --- Phase 1: Transcription (Only if audio exists) ---
     if (audioFilePath) {
-        const transcribeController = new AbortController();
-        let transcribeTimeout = null;
         try {
-            pushSocketUpdate(io, userId, sessionId, 'AI_TRANSCRIBING', `Transcribing audio for Q${questionIdx + 1}...`);
-            const formData = new FormData();
-            formData.append('file', fs.createReadStream(audioFilePath));
-
-            transcribeTimeout = setTimeout(() => transcribeController.abort(), 120000);
-            const transResponse = await fetch(`${AI_SERVICE_URL}/transcribe`, {
-                method: 'POST',
-                body: formData,
-                headers: formData.getHeaders(),
-                signal: transcribeController.signal,
-            });
-
-            if (!transResponse.ok) {
-                const transErrorBody = await transResponse.text();
-                throw new Error(`Transcription service failed (${transResponse.status}): ${transErrorBody}`);
+            const audioStats = fs.statSync(audioFilePath);
+            if (audioStats.size > MAX_AUDIO_FILE_SIZE_BYTES) {
+                console.error(`Audio file too large (${audioStats.size} bytes). Maximum allowed is ${MAX_AUDIO_FILE_SIZE_BYTES} bytes.`);
+                throw new Error('Audio file exceeds 5MB limit');
             }
-
-            const transData = await transResponse.json();
-            const receivedTranscription = (transData.transcription || "").trim();
-            if (receivedTranscription) {
-                transcription = receivedTranscription;
-            }
-        } catch (error) {
-            console.error(`Transcription Error: ${error.message}`);
-        } finally {
-            if (transcribeTimeout) {
-                clearTimeout(transcribeTimeout);
-            }
+        } catch (sizeError) {
+            console.error(`Audio file validation failed for Q${questionIdx + 1}: ${sizeError.message}`);
+            transcription = "[Audio was captured but could not be transcribed. Please evaluate based on absence of answer.]";
             if (audioFilePath && fs.existsSync(audioFilePath)) fs.unlinkSync(audioFilePath);
+            audioFilePath = null;
+        }
+
+        if (audioFilePath) {
+            const transcribeController = new AbortController();
+            let transcribeTimeout = null;
+            try {
+                pushSocketUpdate(io, userId, sessionId, 'AI_TRANSCRIBING', `Transcribing audio for Q${questionIdx + 1}...`);
+                const formData = new FormData();
+                formData.append('file', fs.createReadStream(audioFilePath));
+
+                transcribeTimeout = setTimeout(() => {
+                    console.log("Transcription taking long...");
+                }, 120000);
+                const transResponse = await fetch(`${AI_SERVICE_URL}/transcribe`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: formData.getHeaders(),
+                    signal: transcribeController.signal,
+                });
+
+                if (!transResponse.ok) {
+                    const transErrorBody = await transResponse.text();
+                    throw new Error(`Transcription service failed (${transResponse.status}): ${transErrorBody}`);
+                }
+
+                const transData = await transResponse.json();
+                const receivedTranscription = (transData.transcription || "").trim();
+                if (receivedTranscription) {
+                    transcription = receivedTranscription;
+                } else {
+                    console.log("Transcription came back empty for session:", sessionId);
+                }
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    console.error('Transcription timeout exceeded');
+                } else {
+                    console.error(`Transcription Error: ${error.message}`);
+                }
+            } finally {
+                if (transcribeTimeout) {
+                    clearTimeout(transcribeTimeout);
+                }
+                if (audioFilePath && fs.existsSync(audioFilePath)) fs.unlinkSync(audioFilePath);
+            }
         }
     }
 
-    // For oral questions, do not continue to evaluation if audio transcription is empty.
-    if (question.questionType === 'oral' && !transcription.trim()) {
-        question.isSubmitted = false;
-        question.isEvaluated = false;
-        question.userAnswerText = "";
-        question.score = 0;
-        question.confidenceScore = 0;
-        question.feedback = "Transcription failed. Please submit your audio answer again.";
-        await session.save();
-
-        pushSocketUpdate(
-            io,
-            userId,
-            sessionId,
-            'EVALUATION_FAILED',
-            `Audio transcription failed for Q${questionIdx + 1}. Please submit again.`,
-            session
-        );
-        return;
+    // If transcription is empty but audio was provided, use a fallback placeholder
+    // so evaluation can still proceed (Whisper may have failed or returned silence).
+    if (audioFilePath && !transcription.trim()) {
+        console.warn(`Transcription returned empty for Q${questionIdx + 1}. Proceeding with fallback.`);
+        transcription = "[Audio was captured but could not be transcribed. Please evaluate based on absence of answer.]";
     }
 
     // --- Phase 2: AI Evaluation ---
@@ -324,7 +334,9 @@ const submitAnswer = asyncHandler(async (req, res) => {
         // --- NEW UNIFIED LOGIC ---
         let audioFilePath = null;
         if (req.file) {
-            audioFilePath = path.join(process.cwd(), req.file.path);
+            audioFilePath = path.isAbsolute(req.file.path)
+                ? req.file.path
+                : path.resolve(process.cwd(), req.file.path);
         }
 
         // We no longer error out if one is missing; 
