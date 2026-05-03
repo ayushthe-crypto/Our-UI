@@ -142,7 +142,7 @@ const InterviewRunner = () => {
 
 
   const handleNavigation = (index) => {
-    if (index >= 0 && index < activeSession?.questions.length) {
+    if (index >= 0 && index < (activeSession?.questions?.length || 0)) {
       if (isRecording) stopRecording();
       setCurrentQuestionIndex(index);
       setRecordingTime(0);
@@ -424,7 +424,7 @@ const InterviewRunner = () => {
 
         <button
           onClick={() => handleNavigation(currentQuestionIndex + 1)}
-          disabled={currentQuestionIndex === activeSession.questions.length - 1}
+          disabled={currentQuestionIndex === (activeSession?.questions?.length || 0) - 1}
           className="text-white/70 font-bold text-sm hover:text-white disabled:opacity-30"
         >
           Next →

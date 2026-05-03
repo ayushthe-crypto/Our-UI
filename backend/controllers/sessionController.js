@@ -367,24 +367,24 @@ const calculateOverallScore = async (sessionId) => {
     const results = await Session.aggregate([
         { $match: { _id: new mongoose.Types.ObjectId(sessionId) } },
         { $unwind: '$questions' },
-        // REMOVED: { $match: { 'questions.isSubmitted': true } } 
-        // We now keep all questions to ensure they are part of the average.
+        // ✅ FILTER: Only include questions that have been evaluated
+        { $match: { 'questions.isEvaluated': true } },
         {
             $group: {
                 _id: '$_id',
-                // If a question is evaluated, use its score; otherwise, use 0.
+                // Average only evaluated questions (0s from unevaluated questions are excluded)
                 avgTechnical: {
-                    $avg: { $cond: [{ $eq: ['$questions.isEvaluated', true] }, '$questions.score', 0] }
+                    $avg: '$questions.score'
                 },
                 avgConfidence: {
-                    $avg: { $cond: [{ $eq: ['$questions.isEvaluated', true] }, '$questions.confidenceScore', 0] }
+                    $avg: '$questions.confidenceScore'
                 }
             }
         },
         {
             $project: {
                 _id: 0,
-                // Overall score is the average of the technical and confidence averages across ALL questions.
+                // Overall score is the average of avgTechnical and avgConfidence
                 overallScore: { $round: [{ $avg: ['$avgTechnical', '$avgConfidence'] }, 0] },
                 avgTechnical: { $round: ['$avgTechnical', 0] },
                 avgConfidence: { $round: ['$avgConfidence', 0] },

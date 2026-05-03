@@ -81,14 +81,29 @@ function SessionReview() {
     const { overallScore, metrics, role, level, questions, startTime, endTime } = activeSession;
     const finalMetrics = metrics || {};
 
+    // ✅ CHART DATA: Map questions with both technical and confidence scores
+    const chartData = activeSession?.questions?.map((q, i) => ({
+        name: `Q${i + 1}`,
+        technicalScore: q.technicalScore || q.score || 0,
+        confidenceScore: q.confidenceScore || 0,
+    })) || [];
+
     const barData = {
-        labels: questions.map((_, i) => `Q${i + 1}`),
-        datasets: [{
-            label: 'Technical Score',
-            data: questions.map(q => q.technicalScore || 0),
-            backgroundColor: questions.map(q => (q.technicalScore || 0) > 70 ? '#10b981' : '#f59e0b'),
-            borderRadius: 8,
-        }],
+        labels: chartData.map(item => item.name),
+        datasets: [
+            {
+                label: 'Technical Score',
+                data: chartData.map(item => item.technicalScore),
+                backgroundColor: chartData.map(item => item.technicalScore > 70 ? '#10b981' : '#f59e0b'),
+                borderRadius: 8,
+            },
+            {
+                label: 'Confidence Score',
+                data: chartData.map(item => item.confidenceScore),
+                backgroundColor: chartData.map(item => item.confidenceScore > 70 ? '#3b82f6' : '#ec4899'),
+                borderRadius: 8,
+            }
+        ],
     };
 
     return (
@@ -123,25 +138,29 @@ function SessionReview() {
             <div className="bg-white/5 backdrop-blur-md p-6 sm:p-10 rounded-3xl sm:rounded-[3rem] shadow-sm border border-white/10">
                 <h3 className="text-[10px] font-black text-white mb-6 uppercase tracking-[0.2em]">Per-Question Performance</h3>
                 <div className="h-64 sm:h-80">
-                    <Bar
-                        data={barData}
-                        options={{
-                            maintainAspectRatio: false,
-                            plugins: { legend: { display: false } },
-                            scales: {
-                                y: { 
-                                    beginAtZero: true, 
-                                    max: 100, 
-                                    grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                                    ticks: { color: 'rgba(255, 255, 255, 0.5)' }
-                                },
-                                x: { 
-                                    grid: { display: false },
-                                    ticks: { color: 'rgba(255, 255, 255, 0.5)' }
+                    {chartData.length > 0 ? (
+                        <Bar
+                            data={barData}
+                            options={{
+                                maintainAspectRatio: false,
+                                plugins: { legend: { display: true, labels: { color: 'rgba(255, 255, 255, 0.7)' } } },
+                                scales: {
+                                    y: { 
+                                        beginAtZero: true, 
+                                        max: 100, 
+                                        grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                                        ticks: { color: 'rgba(255, 255, 255, 0.5)' }
+                                    },
+                                    x: { 
+                                        grid: { display: false },
+                                        ticks: { color: 'rgba(255, 255, 255, 0.5)' }
+                                    }
                                 }
-                            }
-                        }}
-                    />
+                            }}
+                        />
+                    ) : (
+                        <div className="flex items-center justify-center h-full text-slate-400">No questions data available</div>
+                    )}
                 </div>
             </div>
 
@@ -164,7 +183,7 @@ function SessionReview() {
                                     <div className="flex gap-2 shrink-0">
                                         <div className="px-3 py-1.5 sm:px-5 sm:py-2 rounded-xl sm:rounded-2xl border border-emerald-400/20 bg-emerald-500/10 flex items-center gap-2">
                                             <span className="text-[8px] sm:text-[10px] font-black uppercase text-white">Tech</span>
-                                            <span className="text-xs sm:text-sm font-black text-emerald-400">{q.technicalScore}%</span>
+                                            <span className="text-xs sm:text-sm font-black text-emerald-400">{q.technicalScore || q.score || 0}%</span>
                                         </div>
                                         <div className="px-3 py-1.5 sm:px-5 sm:py-2 rounded-xl sm:rounded-2xl border border-blue-400/20 bg-blue-500/10 flex items-center gap-2">
                                             <span className="text-[8px] sm:text-[10px] font-black uppercase text-white">Conf</span>
@@ -212,14 +231,14 @@ function SessionReview() {
                                     <div className="space-y-3">
                                         <label className="text-[9px] sm:text-[10px] font-black text-white uppercase tracking-[0.2em] block ml-1">AI Analytical Feedback</label>
                                         <div className="bg-white/5 p-4 sm:p-6 rounded-2xl sm:rounded-[2rem] text-xs sm:text-sm italic text-slate-300 border-l-[4px] sm:border-l-[6px] border-teal-400 leading-relaxed">
-                                            "{q.aiFeedback}"
+                                            "{q.feedback || 'Evaluation still processing...'}"
                                         </div>
                                     </div>
                                     <div className="space-y-3">
                                         <label className="text-[9px] sm:text-[10px] font-black text-white uppercase tracking-[0.2em] block ml-1">Ideal Implementation</label>
                                         <pre className="bg-slate-900 text-slate-300 p-4 sm:p-6 rounded-2xl sm:rounded-[2rem] text-[11px] sm:text-[13px] overflow-x-auto whitespace-pre-wrap font-mono shadow-inner leading-relaxed">
-                                            {/* Using the updated helper function here */}
-                                            {formatIdealAnswer(q.idealAnswer)}
+                                            {/* Ideal answer extracted from feedback if available, otherwise show processing message */}
+                                            {formatIdealAnswer(q.idealAnswer || q.feedback) || 'Awaiting evaluation...'}
                                         </pre>
                                     </div>
                                 </div>
